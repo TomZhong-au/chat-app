@@ -2,6 +2,7 @@
 <html>
   <head>
     <title>Socket.IO chat</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
     <style>
       body {
         margin: 0;
@@ -61,28 +62,46 @@
     <form id="form" action="">
       <input id="input" autocomplete="off" /><button>Send</button>
     </form>
-    <script src="/socket.io/socket.io.js"></script>
+    <!-- <script src="/socket.io/socket.io.js"></script> -->
+    <!-- line65 code works -->
+    <script src="./socket.io.js"></script>
+    <!-- this code does not work -->
     <script>
       var socket = io() //by defaul it tries to connect to the host that serves the page
-
+      const nicknameInput = document.getElementById("nickname")
       const messages = document.getElementById("messages")
       const form = document.getElementById("form")
       const input = document.getElementById("input")
+      let nickname = "user"
+
+      //get nick name
+      nicknameInput.addEventListener("input", () => {
+        nickname = nicknameInput.value
+      })
+
+      //send a message
       form.addEventListener("submit", e => {
         e.preventDefault()
-        if (input.value) {
-          const nickname = document.getElementById("nickname").value
-          socket.emit("chat message", nickname + ": " + input.value)
-          input.value = ""
-        }
+        //socket.emit("chat message", nickname + ": " + input.value)
+        socket.emit("chat message", {
+          sender: nickname,
+          content: input.value,
+        })
+        input.value = ""
       })
 
+      // when user is typing
       input.addEventListener("input", e => {
-        const nickname = document.getElementById("nickname").value
-        socket.emit("chat message", `${nickname} is typing....`)
+        socket.emit("chat message", {
+          sender: "government",
+          content: `${nickname} is typing....`,
+        })
       })
 
+      // receive a message
       socket.on("chat message", msg => {
+        const { sender = "server", content } = msg
+
         if (
           messages.lastChild != null &&
           messages.lastChild.innerText.match(/is typing\.\.\.\./)
@@ -90,10 +109,38 @@
           messages.lastChild.remove()
         }
         const item = document.createElement("li")
-        item.textContent = msg
+        const msgHeading = document.createElement("span")
+        const linebreak = document.createElement("br")
+        const msgContent = document.createElement("span")
+        //item.textContent = msg
+
+        msgHeading.textContent = sender + " " + getHourAndMin(new Date())
+        msgHeading.style.cssText = "font-size:0.8rem; color:grey"
+        msgContent.textContent = content
+
+        item.appendChild(msgHeading)
+        item.appendChild(linebreak)
+        item.appendChild(msgContent)
+
         messages.appendChild(item)
         window.scrollTo(0, document.body.scrollHeight)
       })
+
+      function getHourAndMin(date) {
+        let hour = date.getHours().toString()
+        hour = ("0" + hour).slice(-2)
+        let minute = date.getMinutes().toString()
+        minute = ("0" + minute).slice(-2)
+
+        return hour + ":" + minute
+      }
+
+      function getHourMinRegex(date) {
+        return date.match(/\d{2}:\d{2}/g)
+      }
+
+      const time = getHourMinRegex(new Date().toString())
+      console.log(time)
     </script>
   </body>
 </html>
